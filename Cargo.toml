@@ -1,0 +1,8 @@
+[package]
+name = "dungeons_of_rust"
+version = "0.1.0-pre"
+authors = ["Stian Soltvedt <soltvedt.stian@gmail.com>"]
+
+[dependencies]
+dwarf-term = "0.1"
+rand = "0.5"
