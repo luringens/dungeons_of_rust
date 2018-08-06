@@ -1,14 +1,16 @@
-#![allow(unused_imports)]
+tha#![allow(unused_imports)]
 #![allow(unused_mut)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
 
+extern crate dwarf_term;
 extern crate rand;
 
+use dwarf_term::*;
+use rand::{Rng, ThreadRng};
+use std::collections::hash_map::*;
 use std::collections::HashMap;
 use std::ops::Add;
-use rand::ThreadRng;
-use std::collections::hash_map::*;
 
 pub const TILE_GRID_WIDTH: usize = 66;
 pub const TILE_GRID_HEIGHT: usize = 50;
@@ -47,7 +49,7 @@ impl GameWorld {
         // LATER: other creatures act now that the player is resolved.
     }
 
-    pub fn new(seed: u64) -> Self {
+    pub fn new() -> Self {
         let mut out = Self {
             player_location: Location { x: 5, y: 5 },
             creatures: HashMap::new(),
@@ -55,11 +57,16 @@ impl GameWorld {
             rng: rand::thread_rng(),
         };
         out.creatures.insert(Location { x: 5, y: 5 }, Creature {});
-        
+
         let caves = make_cellular_caves(TILE_GRID_WIDTH, TILE_GRID_HEIGHT, &mut out.rng);
         for (x, y, tile) in caves.iter() {
-            out.terrain
-            .insert(Location { x: x as i32, y: y as i32 }, if *tile { Terrain::Wall } else { Terrain::Floor });
+            out.terrain.insert(
+                Location {
+                    x: x as i32,
+                    y: y as i32,
+                },
+                if *tile { Terrain::Wall } else { Terrain::Floor },
+            );
         }
         out
     }
@@ -69,12 +76,43 @@ fn make_cellular_caves(width: usize, height: usize, rng: &mut ThreadRng) -> VecI
     let mut buffer_a: VecImage<bool> = VecImage::new(width, height);
     let mut buffer_b: VecImage<bool> = VecImage::new(width, height);
     // fill the initial buffer, all cells 45% likely.
-    for (_x,_y,mut_ref) in buffer_a.iter_mut(){
-        if rng.gen_weighted_bool(n) d100.roll_with(gen) <= 45 {
+    for (_x, _y, mut_ref) in buffer_a.iter_mut() {
+        if rng.gen_bool(0.45) {
             *mut_ref = true;
         }
     }
-    unimplemented!()
+
+    let range_count = |buf: &VecImage<bool>, x: usize, y: usize, range: u32| {
+        debug_assert!(range > 0);
+        let mut total = 0;
+        for y in ((y as isize - range as isize) as usize)..=(y + range as usize) {
+            for x in ((x as isize - range as isize) as usize)..=(x + range as usize) {
+                if y == 0 && x == 0 {
+                    continue;
+                }
+                match buf.get((x, y)) {
+                    Some(b) => if *b {
+                        total += 1;
+                    }
+                    None => total += 1,
+                }
+            }
+        }
+        total
+    };
+
+    let cave_copy = |dest: &mut VecImage<bool>, src: &VecImage<bool>| {
+        for (x, y, mut_ref) in dest.iter_mut() {
+            *mut_ref = (range_count(src, x, y, 1) >= 5) || (range_count(src, x, y, 2) <= 1);
+        }
+    };
+
+    cave_copy(&mut buffer_b, &buffer_a);
+    cave_copy(&mut buffer_a, &buffer_b);
+    cave_copy(&mut buffer_b, &buffer_a);
+    cave_copy(&mut buffer_a, &buffer_b);
+    cave_copy(&mut buffer_b, &buffer_a);
+    buffer_b
 }
 
 #[derive(Debug, Clone, Copy)]

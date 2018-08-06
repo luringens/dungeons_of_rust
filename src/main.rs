@@ -26,11 +26,7 @@ fn main() {
     term.set_all_backgrounds(0);
 
     // Main loop
-    let mut game = GameWorld {
-        player_location: Location { x: 5, y: 5 },
-        creatures: HashMap::new(),
-        terrain: HashMap::new(),
-    };
+    let mut game = GameWorld::new();
     game.creatures.insert(Location { x: 5, y: 5 }, Creature {});
     game.terrain
         .insert(Location { x: 10, y: 10 }, Terrain::Wall);
